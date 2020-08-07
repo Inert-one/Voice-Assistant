@@ -78,8 +78,8 @@ def sendEmail(to, content):
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.ehlo()
     server.starttls()
-    server.login('Attentiondebc@gmail.com',"pp251930")
-    server.sendmail('Attentiondebc@gmail.com',to,content)
+    server.login("Sender's E-mail id","**Password**")
+    server.sendmail("Sender's E-mail ID",to,content)
     server.close()
 
 def respond(voice_data):
@@ -288,8 +288,8 @@ time.sleep(1)
 
 person_obj = person()
 asis_obj = asis()
-asis_obj.name = 'Ayush'
-person_obj.name = "Shubham"
+asis_obj.name = 'miss X'
+person_obj.name = ""
 
 def greets():
     greetings = ["hey, how can I help you " + person_obj.name, "hey, what's up?, " + person_obj.name, "I'm listening " + person_obj.name, "how can I help you? " + person_obj.name, "hello " + person_obj.name]
