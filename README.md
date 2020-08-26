@@ -27,7 +27,7 @@ You can add other commands, but these are the ones that exist
    - Save a Note
    - **Send Email
    - Toss Head/Tail
-   - Take Scrrenshot
+   - Take Screenshot
    - Check weather
    - Exit
 
