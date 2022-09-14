@@ -1,6 +1,11 @@
 
 # Ayush speech assistant
-
+import glob
+from stat import S_IWGRP
+from this import s
+from urllib import response
+from winsound import PlaySound
+import dotenv
 import speech_recognition as sr # recognise speech
 import playsound # to play an audio file
 from gtts import gTTS # google text to speech
@@ -20,15 +25,43 @@ import urllib.request
 import requests
 import datetime
 import smtplib
+from dotenv import load_dotenv
+load_dotenv()
+
+s_email = os.getenv('senders_email')
+s_pswrd = os.getenv('password')
+
+class loc:
+    ipApi = os.getenv('ipApi')
+    Ip_info = requests.get('https://api.ipdata.co?api-key='+ ipApi).json()
+    cur_loc = Ip_info['region']
+
+class temp:
+    owUrl = os.getenv('owUrl') + loc.cur_loc
+    
+    response = requests.get(owUrl)
+
+    x = response.json()
+    if x["cod"] != "404":
+        y = x["main"]
+        current_temperature = round(y["temp"] - 273.15)
+        min_temp = round(y["temp_min"] - 273.15)
+        max_temp = round(y["temp_max"] -273.15)
+        current_pressure = y["pressure"]
+        current_humidity = y["humidity"]
+        z = x["weather"]
+        weather_description = z[0]["description"]
 
 class person:
-    name = ''
+    name = dotenv.get_key(".env",'name')
     def setName(self, name):
+        dotenv.set_key(".env","name", name)
         self.name = name
 
 class asis:
-    name = ''
+    name = dotenv.get_key(".env",'asis_name')
     def setName(self, name):
+        dotenv.set_key(".env","asis_name", name)
         self.name = name
 
 engine = pyttsx3.init('sapi5')
@@ -39,6 +72,20 @@ def there_exists(terms):
     for term in terms:
         if term in voice_data:
             return True
+
+def there_exists_in(terms, data):
+    for term in terms:
+        if term in data:
+            return True
+
+def there_exists_all(terms):
+    exists = False
+    for term in terms:
+        if term in voice_data:
+            exists = True
+        else:
+            exists = False
+    return exists
 
 def engine_speak(text):
     text = str(text)
@@ -51,6 +98,8 @@ def record_audio(ask=""):
     with sr.Microphone() as source: # microphone as source
         if ask:
             engine_speak(ask)
+        else:
+            print("Listening...")
         audio = r.listen(source, 5, 5)  # listen for the audio via source
         print("Done Listening")
         voice_data = ''
@@ -78,14 +127,15 @@ def sendEmail(to, content):
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.ehlo()
     server.starttls()
-    server.login("Sender's E-mail id","**Password**")
-    server.sendmail("Sender's E-mail ID",to,content)
+    server.login(s_email,s_pswrd)
+    print(s_email, s_pswrd)
+    server.sendmail(s_email,to,content)
     server.close()
 
 def respond(voice_data):
     # 1: send email
 
-    if there_exists(["send email"]):
+    if there_exists_all(["send", "email"]):
         try:
             voice_data = record_audio("What should i say")
             engine_speak("please write receivers email address: ")
@@ -97,30 +147,61 @@ def respond(voice_data):
             engine_speak("sorry mail couldn't be sent")
 
     # 2: name
-    if there_exists(["what is your name","what's your name","tell me your name"]):
+    if there_exists(["can you do"]):
+        engine_speak("I can send emails, take screenshots, check weather, your location, et cetera")
+    if there_exists(["what is your name","what's your name","tell me your name", "what should i call you"]):
 
         if person_obj.name:
-            engine_speak(f"My name is {asis_obj.name},... {person_obj.name}") #gets users name from voice input
+            engine_speak(f"you can call me {asis_obj.name},... {person_obj.name}") #gets users name from voice input
         else:
-            engine_speak(f"My name is {asis_obj.name}. what's your name?") #incase you haven't provided your name.
+            res = record_audio(f"you can call me {asis_obj.name}. what's your name?")
+
+            if there_exists_in(["my name is"], res):
+                person_name = res.split("is")[-1].strip()
+                engine_speak("okay, i will remember that " + person_name)
+                person_obj.setName(person_name)
+            elif(len(res.split()) ==1):
+                person_name = res
+                engine_speak("okay, i will remember that " + person_name)
+                person_obj.setName(person_name)
+             #incase you haven't provided your name.
 
     if there_exists(["my name is"]):
         person_name = voice_data.split("is")[-1].strip()
         engine_speak("okay, i will remember that " + person_name)
         person_obj.setName(person_name) # remember name in person object
-    
+
     if there_exists(["what is my name"]):
-        engine_speak("Your name must be " + person_obj.name)
+        if(person_obj.name!= ""):
+            engine_speak("Your name must be " + person_obj.name)
+        else:
+            res = record_audio("Sorry, I don't know your name? So, What is your name ? ") 
+            if there_exists_in(["my name is"], res):
+                person_name = res.split("is")[-1].strip()
+                engine_speak("okay, i will remember that " + person_name)
+                person_obj.setName(person_name)
+            elif(len(res.split()) ==1):
+                person_name = res
+                engine_speak("okay, i will remember that " + person_name)
+                person_obj.setName(person_name)    
     
-    if there_exists(["your name should be"]):
-        asis_name = voice_data.split("be")[-1].strip()
+    if there_exists(["can i call you", "should i call you"]):
+        asis_name = voice_data.split("you ")[-1].strip()
         engine_speak("okay, i will remember that my name is " + asis_name)
         asis_obj.setName(asis_name) # remember name in asis object
+
+    if there_exists(["repeat after me", "say after me", "repeat this"]):
+        response = record_audio("Okay")
+        engine_speak(response)
+    if there_exists(["clear trash", "remove trash", "remove junks", "delete trash", "delete audio", "remove bin"]):
+        os.chdir('./')
+        for file in glob.glob('audio*.mp3'):
+            os.remove(file)
 
     # 3: greeting
     if there_exists(["how are you","how are you doing"]):
         engine_speak("I'm very well, thanks for asking " + person_obj.name)
-
+    
     # 4: time
     if there_exists(["what's the time","tell me the time","what time is it","what is the time"]):
         time = ctime().split(" ")[3].split(":")[0:2]
@@ -173,8 +254,12 @@ def respond(voice_data):
         url = "https://www.google.com/search?sxsrf=ACYBGNSQwMLDByBwdVFIUCbQqya-ET7AAA%3A1578847393212&ei=oUwbXtbXDN-C4-EP-5u82AE&q=weather&oq=weather&gs_l=psy-ab.3..35i39i285i70i256j0i67l4j0i131i67j0i131j0i67l2j0.1630.4591..5475...1.2..2.322.1659.9j5j0j1......0....1..gws-wiz.....10..0i71j35i39j35i362i39._5eSPD47bv8&ved=0ahUKEwiWrJvwwP7mAhVfwTgGHfsNDxsQ4dUDCAs&uact=5"
         webbrowser.get().open(url)
         engine_speak("Here is what I found for on google")
+    if there_exists(["temperature"]):
+        engine_speak("Current temperature in " + loc.cur_loc+ " is " + str(temp.current_temperature) + " degree celcius")
+        response = record_audio("Should I tell you all weather information ?")
+        if(response=="yes"):
+            engine_speak("Minimum Temperature will be " + str(temp.min_temp) + "degree celcius whereas maximum temperature will be "+ str(temp.max_temp) + "degree celcius")
      
-
      #10 stone paper scisorrs
     if there_exists(["game"]):
         voice_data = record_audio("choose among rock paper or scissor")
@@ -233,7 +318,7 @@ def respond(voice_data):
     
      #14 to search wikipedia for definition
     if there_exists(["definition of"]):
-        definition=record_audio("what do you need the definition of")
+        definition=voice_data.split("of ")[-1]
         url=urllib.request.urlopen('https://en.wikipedia.org/wiki/'+definition)
         soup=bs.BeautifulSoup(url,'lxml')
         definitions=[]
@@ -250,15 +335,13 @@ def respond(voice_data):
                 engine_speak("im sorry i could not find the definition for "+definition)
 
 
-    if there_exists(["exit", "quit", "goodbye"]):
+    if there_exists(["exit", "quit", "goodbye","bye"]):
         engine_speak("bye")
         exit()
 
     # Current city or region
     if there_exists(["where am i"]):
-        Ip_info = requests.get('https://api.ipdata.co?api-key=test').json()
-        loc = Ip_info['region']
-        engine_speak(f"You must be somewhere in {loc}")    
+        engine_speak(f"You must be somewhere in {loc.cur_loc}")    
    
    # Current location as per Google maps
     if there_exists(["what is my exact location"]):
@@ -288,18 +371,17 @@ time.sleep(1)
 
 person_obj = person()
 asis_obj = asis()
-asis_obj.name = 'miss X'
-person_obj.name = ""
+
 
 def greets():
-    greetings = ["hey, how can I help you " + person_obj.name, "hey, what's up?, " + person_obj.name, "I'm listening " + person_obj.name, "how can I help you? " + person_obj.name, "hello " + person_obj.name]
+    greetings = ["hey, how can I help you " + person_obj.name, "hey, what's up?, " + person_obj.name, "I'm listening " + person_obj.name, "how can I help you? " + person_obj.name, "hello " + person_obj.name, person_obj.name + " Kaise ho aap ?"]
     greet = greetings[random.randint(0,len(greetings)-1)]
     engine_speak(greet)
 
 if __name__ == "__main__":
     greets()
     while(1):
-        voice_data = record_audio("I am ready to take inputs: ") # get the voice input
+        voice_data = record_audio("") # get the voice input
         print("Done")
         # print("Q:", voice_data)
         respond(voice_data) # respond
