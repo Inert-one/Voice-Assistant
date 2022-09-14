@@ -6,7 +6,7 @@ Python app that uses speech recognition and text-to-speech This app initially us
 pip install speechrecognition
 pip install pyttsx3
 pip install pyaudio
-pip install playsound
+pip install playsound==1.2.2
 pip install PyObjC
 ```
 ```
