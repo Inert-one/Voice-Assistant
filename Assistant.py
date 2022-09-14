@@ -28,8 +28,6 @@ import smtplib
 from dotenv import load_dotenv
 load_dotenv()
 
-s_email = os.getenv('senders_email')
-s_pswrd = os.getenv('password')
 
 class loc:
     ipApi = os.getenv('ipApi')
@@ -124,6 +122,9 @@ def engine_speak(audio_string):
     os.remove(audio_file) # remove audio file
 
 def sendEmail(to, content):
+    s_email = os.getenv('senders_email')
+    s_pswrd = os.getenv('password')
+
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.ehlo()
     server.starttls()
